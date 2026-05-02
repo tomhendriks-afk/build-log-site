@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>#agents · Build Log · Ambient Advantage</title>
+<meta name="description" content="Build Log posts tagged #agents.">
+<meta property="og:title" content="#agents · Build Log">
+<meta property="og:description" content="Build Log posts tagged #agents.">
+<meta property="og:type" content="website">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-0: #05070d;
+  --bg-1: #0a0f1c;
+  --bg-2: #0f1628;
+  --line: rgba(120,170,255,.14);
+  --text: #e8eefc;
+  --mute: #8a97b4;
+  --accent: #4ea8ff;
+  --warm: #a78bfa;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg-0);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+nav.top {
+  position: sticky; top: 0; z-index: 20;
+  backdrop-filter: blur(14px);
+  background: rgba(5,7,13,.6);
+  border-bottom: 1px solid var(--line);
+  padding: 0 28px;
+}
+.nav-inner {
+  max-width: 1180px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px;
+}
+.logo { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; letter-spacing: .02em; color: var(--text); }
+.logo a { color: var(--text); }
+.logo a:hover { text-decoration: none; }
+.logo-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 40px rgba(78,168,255,.35); margin-right: 8px; }
+.nav-links { display: flex; gap: 28px; font-size: 14px; font-family: 'Space Grotesk', sans-serif; }
+.nav-links a { color: var(--mute); transition: color .2s; }
+.nav-links a:hover { color: var(--text); text-decoration: none; }
+.nav-links a.active { color: var(--warm); font-weight: 500; }
+
+.tag-page {
+  max-width: 880px; margin: 48px auto 0; padding: 0 28px 80px;
+}
+.tag-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--warm);
+  font-family: 'Space Grotesk', sans-serif;
+  letter-spacing: .04em; font-weight: 500;
+  margin-bottom: 24px;
+}
+.tag-back:hover { text-decoration: none; opacity: .85; }
+.tag-label {
+  font-family: 'JetBrains Mono', 'Space Grotesk', sans-serif;
+  font-size: 12px; color: var(--accent);
+  letter-spacing: .14em; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.tag-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(28px, 3.4vw, 38px);
+  font-weight: 700; line-height: 1.15;
+  margin-bottom: 8px;
+}
+.tag-count {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 14px; color: var(--mute);
+  margin-bottom: 32px;
+}
+.tag-empty { color: var(--mute); font-style: italic; line-height: 1.6; }
+
+.post-list { display: flex; flex-direction: column; gap: 14px; }
+.post-card {
+  background: linear-gradient(180deg, rgba(167,139,250,.04), rgba(167,139,250,.01));
+  border: 1px solid rgba(167,139,250,.15);
+  border-radius: 14px;
+  padding: 20px 22px;
+  transition: border-color .2s, transform .2s;
+}
+.post-card:hover { border-color: rgba(167,139,250,.4); transform: translateY(-1px); }
+.post-date {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px; color: var(--warm); opacity: .8;
+  letter-spacing: .1em; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.post-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 19px; font-weight: 600;
+  line-height: 1.3;
+  margin-bottom: 8px;
+}
+.post-title a { color: var(--text); }
+.post-title a:hover { color: var(--warm); text-decoration: none; }
+.post-excerpt {
+  font-size: 14px; color: #b8c4db; line-height: 1.65;
+  margin-bottom: 12px;
+}
+.post-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px;
+  font-family: 'Space Grotesk', sans-serif;
+}
+.post-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.post-chip {
+  font-family: 'JetBrains Mono', 'Space Grotesk', sans-serif;
+  font-size: 11px; color: var(--mute);
+  background: rgba(120,170,255,.05);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.post-chip:hover { color: var(--warm); border-color: rgba(167,139,250,.4); text-decoration: none; }
+.post-read { font-size: 13px; color: var(--warm); font-weight: 500; }
+.post-read:hover { text-decoration: none; opacity: .85; }
+
+footer {
+  max-width: 1180px; margin: 0 auto;
+  padding: 32px 28px;
+  border-top: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px; color: var(--mute);
+  font-family: 'Space Grotesk', sans-serif;
+}
+footer a { color: var(--mute); }
+footer a:hover { color: var(--text); }
+
+@media (max-width: 600px) {
+  .nav-links { display: none; }
+  footer { flex-direction: column; gap: 8px; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="nav-inner">
+    <div class="logo"><a href="https://ambient-advantage.ai"><span class="logo-dot"></span>Ambient Advantage</a></div>
+    <div class="nav-links">
+      <a href="https://podcast.ambient-advantage.ai">Podcast</a>
+      <a href="https://briefing.ambient-advantage.ai">Daily Briefing</a>
+      <a href="https://take.ambient-advantage.ai">Chiel's Take</a>
+      <a href="index.html" class="active">Build Log</a>
+      <a href="https://ambient-advantage.ai/about">About</a>
+    </div>
+  </div>
+</nav>
+
+<section class="tag-page">
+  <a href="index.html" class="tag-back">&larr; Build Log</a>
+  <div class="tag-label">Tag</div>
+  <h1 class="tag-title">Agents</h1>
+  <div class="tag-count">1 post tagged <code style="font-family:'JetBrains Mono',monospace;color:var(--mute);">#agents</code></div>
+  <div class="post-list">
+    <article class="post-card">
+      <div class="post-date">May 1, 2026</div>
+      <h3 class="post-title"><a href="how-i-built-a-production-ai-system-without-writing-the-code.html">How I Built a Production AI System Without Writing the Code</a></h3>
+      <p class="post-excerpt">I'm not an engineer, but over the last several weeks I built a production AI system in my spare time, with Claude Cowork as my code assistant. This is the story of how it came to be, and why I didn't start by sketching an architecture diagram.</p>
+      <div class="post-meta">
+        <div class="post-chips"><a class="post-chip" href="tag-architecture.html">#architecture</a> <a class="post-chip" href="tag-inaugural.html">#inaugural</a> <a class="post-chip" href="tag-decisions.html">#decisions</a> <a class="post-chip" href="tag-claude.html">#claude</a> <a class="post-chip" href="tag-claude-cowork.html">#claude-cowork</a> <a class="post-chip" href="tag-gemini.html">#gemini</a> <a class="post-chip" href="tag-agentic-ai.html">#agentic-ai</a> <a class="post-chip" href="tag-google-cloud.html">#google-cloud</a> <a class="post-chip" href="tag-agents.html">#agents</a></div>
+        <a class="post-read" href="how-i-built-a-production-ai-system-without-writing-the-code.html">Read &rarr;</a>
+      </div>
+    </article>
+</div>
+</section>
+
+<footer>
+  <div>&copy; 2026 Ambient Advantage</div>
+  <div>
+    <a href="https://briefing.ambient-advantage.ai" style="margin-right:20px">Daily Briefing</a>
+    <a href="https://podcast.ambient-advantage.ai" style="margin-right:20px">Podcast</a>
+    <a href="https://take.ambient-advantage.ai" style="margin-right:20px">Chiel's Take</a>
+    <a href="index.html">Build Log</a>
+  </div>
+</footer>
+
+</body>
+</html>

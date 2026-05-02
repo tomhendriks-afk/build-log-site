@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Build Log · Ambient Advantage</title>
+<meta name="description" content="How I built Ambient Advantage, the daily AI briefing system. Architecture deep-dives, component notes, and tinkering log.">
+<meta property="og:title" content="Build Log · Ambient Advantage">
+<meta property="og:description" content="How I built Ambient Advantage, the daily AI briefing system. Architecture deep-dives, component notes, and tinkering log.">
+<meta property="og:type" content="website">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-0: #05070d;
+  --bg-1: #0a0f1c;
+  --bg-2: #0f1628;
+  --line: rgba(120,170,255,.14);
+  --text: #e8eefc;
+  --mute: #8a97b4;
+  --accent: #4ea8ff;
+  --warm: #a78bfa;
+  --warm-soft: rgba(167,139,250,.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg-0);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* NAV */
+nav.top {
+  position: sticky; top: 0; z-index: 20;
+  backdrop-filter: blur(14px);
+  background: rgba(5,7,13,.6);
+  border-bottom: 1px solid var(--line);
+  padding: 0 28px;
+}
+.nav-inner {
+  max-width: 1180px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px;
+}
+.logo { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; letter-spacing: .02em; color: var(--text); }
+.logo a { color: var(--text); }
+.logo a:hover { text-decoration: none; }
+.logo-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 40px rgba(78,168,255,.35); margin-right: 8px; }
+.nav-links { display: flex; gap: 28px; font-size: 14px; font-family: 'Space Grotesk', sans-serif; }
+.nav-links a { color: var(--mute); transition: color .2s; }
+.nav-links a:hover { color: var(--text); text-decoration: none; }
+.nav-links a.active { color: var(--warm); font-weight: 500; }
+.nav-cta {
+  border: 1px solid rgba(167,139,250,.35); padding: 9px 16px; border-radius: 999px;
+  background: linear-gradient(180deg, rgba(167,139,250,.12), rgba(167,139,250,.02));
+  font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 500;
+  color: var(--warm); letter-spacing: .02em; transition: border-color .2s, color .2s;
+}
+.nav-cta:hover { border-color: var(--warm); color: var(--warm); text-decoration: none; }
+
+/* PAGE INTRO */
+.page-intro {
+  max-width: 1180px; margin: 40px auto 0; padding: 0 28px;
+}
+.page-intro h1 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(28px, 3.4vw, 38px);
+  font-weight: 700;
+  line-height: 1.15;
+  margin-bottom: 12px;
+}
+.page-intro p {
+  font-size: 16px;
+  color: var(--mute);
+  line-height: 1.7;
+  max-width: 720px;
+}
+
+/* HERO CARD */
+.hero-wrap {
+  max-width: 1180px; margin: 32px auto 0; padding: 0 28px;
+}
+.hero-card {
+  position: relative; overflow: hidden;
+  background: linear-gradient(135deg, rgba(167,139,250,.10) 0%, rgba(167,139,250,.03) 50%, rgba(78,168,255,.04) 100%);
+  border: 1px solid rgba(167,139,250,.32);
+  border-radius: 20px;
+  padding: 48px 56px;
+  transition: border-color .2s, transform .2s;
+}
+.hero-card::before {
+  content: ''; position: absolute; top: -100px; right: -100px;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(167,139,250,.10), transparent 70%);
+  pointer-events: none;
+}
+.hero-card:hover { border-color: rgba(167,139,250,.5); transform: translateY(-2px); }
+.hero-label {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--warm);
+  font-family: 'Space Grotesk', sans-serif;
+  letter-spacing: .1em; text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.hero-label-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--warm);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+.hero-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(26px, 3.4vw, 38px);
+  font-weight: 700; line-height: 1.2;
+  margin-bottom: 14px;
+}
+.hero-title a { color: var(--text); }
+.hero-title a:hover { color: var(--warm); text-decoration: none; }
+.hero-excerpt {
+  font-size: 16px; color: #b8c4db; line-height: 1.7;
+  margin-bottom: 20px;
+  max-width: 760px;
+}
+.hero-meta {
+  display: flex; align-items: center; gap: 14px;
+  font-size: 13px; color: var(--mute);
+  font-family: 'Space Grotesk', sans-serif;
+  margin-bottom: 18px;
+}
+.hero-meta .author { color: var(--warm); font-weight: 500; }
+.hero-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+.hero-chip {
+  font-family: 'JetBrains Mono', 'Space Grotesk', sans-serif;
+  font-size: 11px; color: var(--mute);
+  background: rgba(120,170,255,.06);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+.hero-read-btn {
+  display: inline-block;
+  padding: 12px 24px;
+  background: linear-gradient(180deg, rgba(167,139,250,.18), rgba(167,139,250,.06));
+  border: 1px solid rgba(167,139,250,.4);
+  border-radius: 999px;
+  color: var(--warm);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 14px; font-weight: 500; letter-spacing: .04em;
+  transition: border-color .2s, background .2s;
+}
+.hero-read-btn:hover { border-color: var(--warm); background: rgba(167,139,250,.14); text-decoration: none; }
+.hero-empty {
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  padding: 48px;
+  text-align: center;
+  color: var(--mute);
+}
+
+/* COMPONENT CATALOGUE */
+.components-section {
+  max-width: 1180px; margin: 64px auto 0; padding: 0 28px;
+}
+.components-header {
+  margin-bottom: 24px;
+}
+.components-header h2 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 22px; font-weight: 600;
+  margin-bottom: 6px;
+}
+.components-header p {
+  font-size: 14px; color: var(--mute); line-height: 1.6;
+  max-width: 720px;
+}
+.component-group-block { margin-bottom: 36px; }
+.component-group-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px; color: var(--accent);
+  letter-spacing: .14em; text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.component-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+.component-card {
+  background: linear-gradient(180deg, rgba(167,139,250,.04), rgba(167,139,250,.01));
+  border: 1px solid rgba(167,139,250,.15);
+  border-radius: 14px;
+  padding: 22px 22px 18px;
+  display: flex; flex-direction: column;
+  transition: border-color .2s, transform .2s;
+}
+.component-card.has-posts { border-color: rgba(167,139,250,.30); }
+.component-card.has-posts:hover { border-color: rgba(167,139,250,.55); transform: translateY(-2px); }
+.component-card.is-empty { opacity: .65; }
+.component-group {
+  font-family: 'JetBrains Mono', 'Space Grotesk', sans-serif;
+  font-size: 10px; color: var(--mute);
+  letter-spacing: .14em; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.component-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px; font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.component-blurb {
+  font-size: 13.5px; color: #b8c4db; line-height: 1.6;
+  margin-bottom: 16px;
+  flex-grow: 1;
+}
+.component-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(120,170,255,.08);
+}
+.component-count { color: var(--mute); }
+.component-cta { color: var(--warm); font-weight: 500; }
+.component-cta:hover { text-decoration: none; opacity: .85; }
+.component-cta-empty { color: var(--mute); opacity: .8; font-style: italic; }
+
+/* RECENT POSTS */
+.recent-section { max-width: 1180px; margin: 64px auto 0; padding: 0 28px; }
+.recent-header {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.recent-header h2 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 22px; font-weight: 600;
+}
+.recent-all {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px; color: var(--warm);
+  letter-spacing: .04em; font-weight: 500;
+}
+.post-list { display: flex; flex-direction: column; gap: 14px; }
+.post-card {
+  background: linear-gradient(180deg, rgba(167,139,250,.04), rgba(167,139,250,.01));
+  border: 1px solid rgba(167,139,250,.15);
+  border-radius: 14px;
+  padding: 20px 22px;
+  transition: border-color .2s, transform .2s;
+}
+.post-card:hover { border-color: rgba(167,139,250,.4); transform: translateY(-1px); }
+.post-date {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px; color: var(--warm); opacity: .8;
+  letter-spacing: .1em; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.post-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 19px; font-weight: 600;
+  line-height: 1.3;
+  margin-bottom: 8px;
+}
+.post-title a { color: var(--text); }
+.post-title a:hover { color: var(--warm); text-decoration: none; }
+.post-excerpt {
+  font-size: 14px; color: #b8c4db; line-height: 1.65;
+  margin-bottom: 12px;
+}
+.post-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px;
+  font-family: 'Space Grotesk', sans-serif;
+}
+.post-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.post-chip {
+  font-family: 'JetBrains Mono', 'Space Grotesk', sans-serif;
+  font-size: 11px; color: var(--mute);
+  background: rgba(120,170,255,.05);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 10px;
+  transition: color .15s, border-color .15s;
+}
+.post-chip:hover { color: var(--warm); border-color: rgba(167,139,250,.4); text-decoration: none; }
+.post-read {
+  font-size: 13px; color: var(--warm); font-weight: 500;
+}
+.post-read:hover { text-decoration: none; opacity: .85; }
+
+/* SUBSCRIBE */
+.subscribe-section { max-width: 1180px; margin: 56px auto; padding: 0 28px; }
+.subscribe-inner {
+  background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 40px;
+  display: flex; align-items: center; justify-content: space-between; gap: 32px;
+}
+.subscribe-text h3 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 22px; font-weight: 600; margin-bottom: 6px;
+}
+.subscribe-text p { font-size: 14px; color: var(--mute); line-height: 1.6; }
+.subscribe-cta {
+  display: inline-block;
+  padding: 12px 24px;
+  background: linear-gradient(180deg, var(--warm), #8b5cf6);
+  border-radius: 10px;
+  color: var(--bg-0);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 14px; font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* FOOTER */
+footer {
+  max-width: 1180px; margin: 0 auto;
+  padding: 32px 28px;
+  border-top: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px; color: var(--mute);
+  font-family: 'Space Grotesk', sans-serif;
+}
+footer a { color: var(--mute); }
+footer a:hover { color: var(--text); }
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .hero-card { padding: 32px 28px; }
+  .component-grid { grid-template-columns: repeat(2, 1fr); }
+  .subscribe-inner { flex-direction: column; text-align: center; }
+  footer { flex-direction: column; gap: 8px; text-align: center; }
+}
+.mobile-nav { display: none; }
+@media (max-width: 600px) {
+  .nav-links { display: none; }
+  .nav-cta { display: none; }
+  .hero-card { padding: 26px 22px; }
+  .component-grid { grid-template-columns: 1fr; }
+  body { padding-bottom: 72px; }
+  .mobile-nav {
+    display: flex;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    justify-content: space-around; align-items: center;
+    padding: 10px 0 max(10px, env(safe-area-inset-bottom));
+    background: rgba(10, 8, 5, 0.92);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(245, 166, 35, 0.15);
+  }
+  .mobile-nav a {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    text-decoration: none; padding: 4px 14px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-nav a svg {
+    width: 24px; height: 24px; stroke-width: 1.5;
+    stroke: var(--mute); fill: none;
+    transition: stroke .2s;
+  }
+  .mobile-nav a span {
+    font-size: 11px; font-family: 'Space Grotesk', system-ui;
+    letter-spacing: .03em; color: var(--mute);
+    transition: color .2s;
+  }
+  .mobile-nav a.active svg { stroke: var(--warm); stroke-width: 2; }
+  .mobile-nav a.active span { color: var(--warm); font-weight: 600; }
+}
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="nav-inner">
+    <div class="logo"><a href="https://ambient-advantage.ai"><span class="logo-dot"></span>Ambient Advantage</a></div>
+    <div class="nav-links">
+      <a href="https://podcast.ambient-advantage.ai">Podcast</a>
+      <a href="https://briefing.ambient-advantage.ai">Daily Briefing</a>
+      <a href="https://take.ambient-advantage.ai">Chiel's Take</a>
+      <a href="index.html" class="active">Build Log</a>
+      <a href="https://ambient-advantage.ai/about">About</a>
+    </div>
+    <a href="#subscribe" class="nav-cta">Subscribe</a>
+  </div>
+</nav>
+
+<section class="page-intro">
+  <h1>Build Log</h1>
+  <p>How Ambient Advantage was built, and is still being built. Architecture deep-dives, component notes, gotchas, and the conversations with Claude that got me here. Start with the architecture deep-dive below, or jump into a specific component.</p>
+</section>
+
+<div class="hero-wrap">
+{{HERO}}
+</div>
+
+<section class="components-section">
+  <div class="components-header">
+    <h2>The system, by component</h2>
+    <p>Each box on the architecture diagram has its own page. Click in to read everything I've written about that component: design choices, gotchas, things I'd do differently. Empty cards mean a post is on the way.</p>
+  </div>
+{{COMPONENTS}}
+</section>
+
+{{RECENT}}
+
+<!-- SUBSCRIBE -->
+<div class="subscribe-section" id="subscribe">
+  <div class="subscribe-inner">
+    <div class="subscribe-text">
+      <h3>Want the daily briefing too?</h3>
+      <p>The Build Log is the behind-the-scenes. The Daily Briefing is the front-of-house. Every weekday morning, the AI news that matters for business leaders.</p>
+    </div>
+    <a href="https://ambient-advantage.ai" class="subscribe-cta">Visit Ambient Advantage &rarr;</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>&copy; 2026 Ambient Advantage</div>
+  <div>
+    <a href="https://briefing.ambient-advantage.ai" style="margin-right:20px">Daily Briefing</a>
+    <a href="https://podcast.ambient-advantage.ai" style="margin-right:20px">Podcast</a>
+    <a href="https://take.ambient-advantage.ai" style="margin-right:20px">Chiel's Take</a>
+    <a href="index.html">Build Log</a>
+  </div>
+</footer>
+
+<nav class="mobile-nav" aria-label="Mobile navigation">
+  <a href="https://podcast.ambient-advantage.ai">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3v5z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3v5z"/></svg>
+    <span>Podcast</span>
+  </a>
+  <a href="https://briefing.ambient-advantage.ai">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+    <span>Briefing</span>
+  </a>
+  <a href="https://take.ambient-advantage.ai">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+    <span>Take</span>
+  </a>
+  <a href="index.html" class="active">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+    <span>Build</span>
+  </a>
+</nav>
+
+</body>
+</html>

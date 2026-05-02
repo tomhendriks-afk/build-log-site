@@ -1,0 +1,24 @@
+[
+  {
+    "slug": "how-i-built-a-production-ai-system-without-writing-the-code",
+    "title": "How I Built a Production AI System Without Writing the Code",
+    "tag": "Architecture",
+    "tags": [
+      "architecture",
+      "inaugural",
+      "decisions",
+      "claude",
+      "claude-cowork",
+      "gemini",
+      "agentic-ai",
+      "google-cloud",
+      "agents"
+    ],
+    "date": "2026-05-01",
+    "date_display": "May 1, 2026",
+    "read_time": "12",
+    "read_time_display": "12 min read",
+    "excerpt": "I'm not an engineer, but over the last several weeks I built a production AI system in my spare time, with Claude Cowork as my code assistant. This is the story of how it came to be, and why I didn't start by sketching an architecture diagram.",
+    "pinned": true
+  }
+]
