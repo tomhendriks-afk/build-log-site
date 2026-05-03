@@ -85,8 +85,8 @@ This is the picture I couldn't have drawn in week one. It's the end result of al
 .arch-embed .flow-row.centered { justify-content: center; }
 .arch-embed .node { border-radius: 10px; padding: 16px 20px; position: relative; min-width: 140px; flex: 1; max-width: 260px; }
 .arch-embed .node-icon { font-size: 22px; margin-bottom: 8px; line-height: 1; }
-.arch-embed .node-icon img, .arch-embed .node-icon svg { width: 24px; height: 24px; vertical-align: middle; }
-.arch-embed .infra-item .node-title img, .arch-embed .infra-item .node-title svg { width: 16px; height: 16px; vertical-align: -2px; margin-right: 4px; }
+.arch-embed .node-icon img, .arch-embed .node-icon svg { width: 24px !important; height: 24px !important; vertical-align: middle; }
+.arch-embed .infra-item .node-title img, .arch-embed .infra-item .node-title svg { width: 16px !important; height: 16px !important; vertical-align: -2px; margin-right: 4px; }
 .arch-embed .node-title { font-size: 13px; font-weight: 600; color: #1a1a2e; margin-bottom: 4px; }
 .arch-embed .node-desc { font-size: 11px; line-height: 1.5; color: #64748b; }
 .arch-embed .node.trigger { background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
@@ -187,21 +187,21 @@ This is the picture I couldn't have drawn in week one. It's the end result of al
     <div class="flow-row">
       <div class="node trigger is-automated">
         <span class="auto-tag automated">Automated</span>
-        <div class="node-icon"><img src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"></div>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"></div>
         <div class="node-title">Cloud Scheduler</div>
         <div class="node-desc">Cron trigger hits<br><code style="font-size:10px;color:#2563eb">/research-and-draft</code></div>
       </div>
       <div class="flow-arrow">&#8594;</div>
       <div class="node claude is-automated">
         <span class="auto-tag automated">Automated</span>
-        <div class="node-icon"><img src="https://cdn.simpleicons.org/anthropic/D4A27F" alt="Claude"></div>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/anthropic/D4A27F" alt="Claude"></div>
         <div class="node-title">Claude + Web Search</div>
         <div class="node-desc">Pass 1: Researches 10–15 AI stories using web search + Gmail newsletters</div>
       </div>
       <div class="flow-arrow">&#8594;</div>
       <div class="node claude is-automated">
         <span class="auto-tag automated">Automated</span>
-        <div class="node-icon"><img src="https://cdn.simpleicons.org/anthropic/D4A27F" alt="Claude"></div>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/anthropic/D4A27F" alt="Claude"></div>
         <div class="node-title">Claude Writes</div>
         <div class="node-desc">Pass 2: Newsletter, podcast transcript (JON/AVA), episode summary</div>
         <div class="outputs">
@@ -212,7 +212,7 @@ This is the picture I couldn't have drawn in week one. It's the end result of al
       <div class="flow-arrow">&#8594;</div>
       <div class="node gmail is-automated">
         <span class="auto-tag automated">Automated</span>
-        <div class="node-icon"><img src="https://cdn.simpleicons.org/gmail/EA4335" alt="Gmail"></div>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/gmail/EA4335" alt="Gmail"></div>
         <div class="node-title">Gmail Drafts</div>
         <div class="node-desc">Two drafts created for review + auto-approval quality checks</div>
       </div>
@@ -249,7 +249,7 @@ This is the picture I couldn't have drawn in week one. It's the end result of al
     <div class="flow-row">
       <div class="node trigger is-automated">
         <span class="auto-tag automated">Automated</span>
-        <div class="node-icon"><img src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"></div>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"></div>
         <div class="node-title">Cloud Scheduler</div>
         <div class="node-desc">Cron trigger hits<br><code style="font-size:10px;color:#059669">/run</code></div>
       </div>
@@ -264,7 +264,7 @@ This is the picture I couldn't have drawn in week one. It's the end result of al
       <div class="flow-arrow">&#8594;</div>
       <div class="node tts is-automated">
         <span class="auto-tag automated">Automated</span>
-        <div class="node-icon"><img src="https://cdn.simpleicons.org/elevenlabs/000000" alt="ElevenLabs"></div>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/elevenlabs/000000" alt="ElevenLabs"></div>
         <div class="node-title">ElevenLabs TTS</div>
         <div class="node-desc">Transcript → audio. Two voices (JON/AVA), chunked &amp; concatenated</div>
         <div class="outputs"><span class="badge mp3">MP3</span></div>
@@ -272,7 +272,7 @@ This is the picture I couldn't have drawn in week one. It's the end result of al
       <div class="flow-arrow">&#8594;</div>
       <div class="node storage is-automated">
         <span class="auto-tag automated">Automated</span>
-        <div class="node-icon"><img src="https://cdn.simpleicons.org/googlecloudstorage/AECBFA" alt="GCS"></div>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/googlecloudstorage/AECBFA" alt="GCS"></div>
         <div class="node-title">Cloud Storage</div>
         <div class="node-desc">MP3 uploaded to GCS bucket (public URL)</div>
       </div>
@@ -283,13 +283,13 @@ This is the picture I couldn't have drawn in week one. It's the end result of al
     <div class="flow-row centered">
       <div class="node publish is-automated">
         <span class="auto-tag automated">Automated</span>
-        <div class="node-icon"><img src="https://cdn.simpleicons.org/cloudflare/F38020" alt="Cloudflare"></div>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/cloudflare/F38020" alt="Cloudflare"></div>
         <div class="node-title">Cloudflare — Briefing Site</div>
         <div class="node-desc">Newsletter → HTML article committed via GitHub API</div>
       </div>
       <div class="node publish is-automated">
         <span class="auto-tag automated">Automated</span>
-        <div class="node-icon"><img src="https://cdn.simpleicons.org/cloudflare/F38020" alt="Cloudflare"></div>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/cloudflare/F38020" alt="Cloudflare"></div>
         <div class="node-title">Cloudflare — Podcast Site</div>
         <div class="node-desc">Episode + RSS feed updated via GitHub API</div>
         <div class="outputs">
@@ -298,7 +298,7 @@ This is the picture I couldn't have drawn in week one. It's the end result of al
       </div>
       <div class="node storage is-automated">
         <span class="auto-tag automated">Automated</span>
-        <div class="node-icon"><img src="https://cdn.simpleicons.org/firebase/FFCA28" alt="Firestore"></div>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/firebase/FFCA28" alt="Firestore"></div>
         <div class="node-title">Firestore</div>
         <div class="node-desc">Episode metadata + pipeline state saved. Idempotency guaranteed.</div>
       </div>
@@ -315,32 +315,32 @@ This is the picture I couldn't have drawn in week one. It's the end result of al
     <div class="infra-grid">
       <div class="infra-item">
         <span class="auto-tag automated" style="font-size:8px; padding:1px 6px;">Auto-scaling</span>
-        <div class="node-title"><img src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"> Cloud Run</div>
+        <div class="node-title"><img width="16" height="16" src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"> Cloud Run</div>
         <div class="node-desc">Runs the pipeline service. Scales to zero — near-zero cost when idle.</div>
       </div>
       <div class="infra-item">
         <span class="auto-tag automated" style="font-size:8px; padding:1px 6px;">Auto-deploy</span>
-        <div class="node-title"><img src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"> Cloud Build</div>
+        <div class="node-title"><img width="16" height="16" src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"> Cloud Build</div>
         <div class="node-desc">CI/CD: push to main → Docker build → deploy. Zero manual steps.</div>
       </div>
       <div class="infra-item">
         <span class="auto-tag automated" style="font-size:8px; padding:1px 6px;">Auto-deploy</span>
-        <div class="node-title"><img src="https://cdn.simpleicons.org/cloudflare/F38020" alt="Cloudflare"> Cloudflare Pages</div>
+        <div class="node-title"><img width="16" height="16" src="https://cdn.simpleicons.org/cloudflare/F38020" alt="Cloudflare"> Cloudflare Pages</div>
         <div class="node-desc">Hosts both static sites. Auto-deploys on every GitHub commit.</div>
       </div>
       <div class="infra-item">
         <span class="auto-tag automated" style="font-size:8px; padding:1px 6px;">Auto-refresh</span>
-        <div class="node-title"><img src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"> Secret Manager</div>
+        <div class="node-title"><img width="16" height="16" src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"> Secret Manager</div>
         <div class="node-desc">API keys, OAuth tokens. Auto-refreshing Gmail credentials.</div>
       </div>
       <div class="infra-item">
         <span class="auto-tag automated" style="font-size:8px; padding:1px 6px;">Auto-commit</span>
-        <div class="node-title"><img src="https://cdn.simpleicons.org/github/181717" alt="GitHub"> GitHub (6 repos)</div>
+        <div class="node-title"><img width="16" height="16" src="https://cdn.simpleicons.org/github/181717" alt="GitHub"> GitHub (6 repos)</div>
         <div class="node-desc">cloud-run-podcast, briefing site, podcast site, chiels-take-site, landing site, build log site. Push triggers Cloud Build + Cloudflare deploys.</div>
       </div>
       <div class="infra-item">
         <span class="auto-tag automated" style="font-size:8px; padding:1px 6px;">Auto-alert</span>
-        <div class="node-title"><img src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"> Cloud Logging</div>
+        <div class="node-title"><img width="16" height="16" src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"> Cloud Logging</div>
         <div class="node-desc">Monitoring + alert policy on ERROR severity.</div>
       </div>
     </div>
@@ -375,14 +375,14 @@ This is the picture I couldn't have drawn in week one. It's the end result of al
       <div class="flow-arrow">&#8594;</div>
       <div class="node claude is-automated">
         <span class="auto-tag automated">Automated</span>
-        <div class="node-icon"><img src="https://cdn.simpleicons.org/anthropic/D4A27F" alt="Claude"></div>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/anthropic/D4A27F" alt="Claude"></div>
         <div class="node-title">Claude + Web Search</div>
         <div class="node-desc">Pass 1: Researches 10–15 AI stories using web search + Gmail newsletters</div>
       </div>
       <div class="flow-arrow">&#8594;</div>
       <div class="node claude is-automated">
         <span class="auto-tag automated">Automated</span>
-        <div class="node-icon"><img src="https://cdn.simpleicons.org/anthropic/D4A27F" alt="Claude"></div>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/anthropic/D4A27F" alt="Claude"></div>
         <div class="node-title">Claude Writes</div>
         <div class="node-desc">Pass 2: Newsletter, podcast transcript (JON/AVA), episode summary</div>
         <div class="outputs">
@@ -393,7 +393,7 @@ This is the picture I couldn't have drawn in week one. It's the end result of al
       <div class="flow-arrow">&#8594;</div>
       <div class="node gmail is-automated">
         <span class="auto-tag automated">Automated</span>
-        <div class="node-icon"><img src="https://cdn.simpleicons.org/gmail/EA4335" alt="Gmail"></div>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/gmail/EA4335" alt="Gmail"></div>
         <div class="node-title">Gmail Drafts</div>
         <div class="node-desc">Two drafts created for review + auto-approval quality checks</div>
       </div>
@@ -430,7 +430,7 @@ This is the picture I couldn't have drawn in week one. It's the end result of al
     <div class="flow-row">
       <div class="node trigger is-automated">
         <span class="auto-tag automated">Automated</span>
-        <div class="node-icon"><img src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"></div>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"></div>
         <div class="node-title">Cloud Scheduler</div>
         <div class="node-desc">Cron trigger hits<br><code style="font-size:10px;color:#059669">/run</code></div>
       </div>
@@ -445,7 +445,7 @@ This is the picture I couldn't have drawn in week one. It's the end result of al
       <div class="flow-arrow">&#8594;</div>
       <div class="node tts is-automated">
         <span class="auto-tag automated">Automated</span>
-        <div class="node-icon"><img src="https://cdn.simpleicons.org/elevenlabs/000000" alt="ElevenLabs"></div>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/elevenlabs/000000" alt="ElevenLabs"></div>
         <div class="node-title">ElevenLabs TTS</div>
         <div class="node-desc">Transcript → audio. Two voices (JON/AVA), chunked &amp; concatenated</div>
         <div class="outputs"><span class="badge mp3">MP3</span></div>
@@ -453,7 +453,7 @@ This is the picture I couldn't have drawn in week one. It's the end result of al
       <div class="flow-arrow">&#8594;</div>
       <div class="node storage is-automated">
         <span class="auto-tag automated">Automated</span>
-        <div class="node-icon"><img src="https://cdn.simpleicons.org/googlecloudstorage/AECBFA" alt="GCS"></div>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/googlecloudstorage/AECBFA" alt="GCS"></div>
         <div class="node-title">Cloud Storage</div>
         <div class="node-desc">MP3 uploaded to GCS bucket (public URL)</div>
       </div>
@@ -464,13 +464,13 @@ This is the picture I couldn't have drawn in week one. It's the end result of al
     <div class="flow-row centered">
       <div class="node publish is-automated">
         <span class="auto-tag automated">Automated</span>
-        <div class="node-icon"><img src="https://cdn.simpleicons.org/cloudflare/F38020" alt="Cloudflare"></div>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/cloudflare/F38020" alt="Cloudflare"></div>
         <div class="node-title">Cloudflare — Briefing Site</div>
         <div class="node-desc">Newsletter → HTML article committed via GitHub API</div>
       </div>
       <div class="node publish is-automated">
         <span class="auto-tag automated">Automated</span>
-        <div class="node-icon"><img src="https://cdn.simpleicons.org/cloudflare/F38020" alt="Cloudflare"></div>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/cloudflare/F38020" alt="Cloudflare"></div>
         <div class="node-title">Cloudflare — Podcast Site</div>
         <div class="node-desc">Episode + RSS feed updated via GitHub API</div>
         <div class="outputs">
@@ -479,7 +479,7 @@ This is the picture I couldn't have drawn in week one. It's the end result of al
       </div>
       <div class="node storage is-automated">
         <span class="auto-tag automated">Automated</span>
-        <div class="node-icon"><img src="https://cdn.simpleicons.org/firebase/FFCA28" alt="Firestore"></div>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/firebase/FFCA28" alt="Firestore"></div>
         <div class="node-title">Firestore</div>
         <div class="node-desc">Episode metadata + pipeline state saved. Idempotency guaranteed.</div>
       </div>
@@ -496,32 +496,32 @@ This is the picture I couldn't have drawn in week one. It's the end result of al
     <div class="infra-grid">
       <div class="infra-item">
         <span class="auto-tag automated" style="font-size:8px; padding:1px 6px;">Auto-scaling</span>
-        <div class="node-title"><img src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"> Cloud Run</div>
+        <div class="node-title"><img width="16" height="16" src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"> Cloud Run</div>
         <div class="node-desc">Runs the pipeline service. Scales to zero — near-zero cost when idle.</div>
       </div>
       <div class="infra-item">
         <span class="auto-tag automated" style="font-size:8px; padding:1px 6px;">Auto-deploy</span>
-        <div class="node-title"><img src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"> Cloud Build</div>
+        <div class="node-title"><img width="16" height="16" src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"> Cloud Build</div>
         <div class="node-desc">CI/CD: push to main → Docker build → deploy. Zero manual steps.</div>
       </div>
       <div class="infra-item">
         <span class="auto-tag automated" style="font-size:8px; padding:1px 6px;">Auto-deploy</span>
-        <div class="node-title"><img src="https://cdn.simpleicons.org/cloudflare/F38020" alt="Cloudflare"> Cloudflare Pages</div>
+        <div class="node-title"><img width="16" height="16" src="https://cdn.simpleicons.org/cloudflare/F38020" alt="Cloudflare"> Cloudflare Pages</div>
         <div class="node-desc">Hosts both static sites. Auto-deploys on every GitHub commit.</div>
       </div>
       <div class="infra-item">
         <span class="auto-tag automated" style="font-size:8px; padding:1px 6px;">Auto-refresh</span>
-        <div class="node-title"><img src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"> Secret Manager</div>
+        <div class="node-title"><img width="16" height="16" src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"> Secret Manager</div>
         <div class="node-desc">API keys, OAuth tokens. Auto-refreshing Gmail credentials.</div>
       </div>
       <div class="infra-item">
         <span class="auto-tag automated" style="font-size:8px; padding:1px 6px;">Auto-commit</span>
-        <div class="node-title"><img src="https://cdn.simpleicons.org/github/181717" alt="GitHub"> GitHub (6 repos)</div>
+        <div class="node-title"><img width="16" height="16" src="https://cdn.simpleicons.org/github/181717" alt="GitHub"> GitHub (6 repos)</div>
         <div class="node-desc">cloud-run-podcast, briefing site, podcast site, chiels-take-site, landing site, build log site. Push triggers Cloud Build + Cloudflare deploys.</div>
       </div>
       <div class="infra-item">
         <span class="auto-tag automated" style="font-size:8px; padding:1px 6px;">Auto-alert</span>
-        <div class="node-title"><img src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"> Cloud Logging</div>
+        <div class="node-title"><img width="16" height="16" src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"> Cloud Logging</div>
         <div class="node-desc">Monitoring + alert policy on ERROR severity.</div>
       </div>
     </div>
