@@ -429,29 +429,6 @@ def render_index(posts: list[dict]) -> str:
     else:
         hero_html = '<div class="hero-empty">No posts yet.</div>'
 
-    # Component grid, group by group label, in COMPONENT_GROUP_ORDER
-    counts: dict[str, int] = {}
-    for p in posts:
-        for t in p.get("tags", []):
-            counts[t] = counts.get(t, 0) + 1
-
-    groups: dict[str, list[str]] = {g: [] for g in COMPONENT_GROUP_ORDER}
-    for c in COMPONENTS:
-        groups[c["group"]].append(_component_card(c, counts.get(c["slug"], 0)))
-
-    components_html_parts: list[str] = []
-    for group_name in COMPONENT_GROUP_ORDER:
-        cards = groups.get(group_name) or []
-        if not cards:
-            continue
-        components_html_parts.append(f'''  <div class="component-group-block">
-    <h2 class="component-group-title">{group_name}</h2>
-    <div class="component-grid">
-{chr(10).join(cards)}
-    </div>
-  </div>''')
-    components_html = "\n".join(components_html_parts)
-
     # Recent posts list, exclude the hero so it isn't shown twice
     other_posts = [p for p in posts if p is not hero]
     if other_posts:
@@ -468,7 +445,7 @@ def render_index(posts: list[dict]) -> str:
     else:
         recent_html = ""
 
-    return template.replace("{{HERO}}", hero_html).replace("{{COMPONENTS}}", components_html).replace("{{RECENT}}", recent_html)
+    return template.replace("{{HERO}}", hero_html).replace("{{RECENT}}", recent_html)
 
 
 def render_tag_page(tag: str, posts_for_tag: list[dict]) -> str:
