@@ -1,0 +1,39 @@
+# Build Log — Ambient Advantage
+
+> Behind-the-scenes catalogue of how the Ambient Advantage system itself is built. The engineering counterpart to Chiel's Take: where Take publishes opinion on AI strategy, the Build Log publishes architecture deep-dives, decisions, gotchas, and operational notes from running a production AI pipeline (Cloud Run, Claude, ElevenLabs, Cloudflare Pages, Firestore, GitHub). The homepage is a clickable component grid rather than a chronological feed — one card per system component. Authored by Chiel Hendriks (Managing Director, PwC Canada; ex-Google, 16 years), who built the system as a non-engineer using Claude Cowork as code assistant.
+
+## Posts
+- [How I Built a Production AI System Without Writing the Code](https://build.ambient-advantage.ai/how-i-built-a-production-ai-system-without-writing-the-code.html) (May 1, 2026): Inaugural deep-dive on building a production AI pipeline as a non-engineer, with Claude Cowork as code assistant. Covers the architecture, the decisions, and why a sketch never came first.
+
+## Index
+- [Component catalogue](https://build.ambient-advantage.ai): Homepage. Clickable grid of every system component (Cloud Run, Cloud Build, Cloud Scheduler, Firestore, GCS, Secret Manager, Anthropic, ElevenLabs, Gemini, Gmail API, GitHub, Cloudflare Pages, Beehiiv) with the posts tagged to each.
+
+## Tag pages
+- [agentic-ai](https://build.ambient-advantage.ai/tag-agentic-ai.html)
+- [agents](https://build.ambient-advantage.ai/tag-agents.html)
+- [anthropic](https://build.ambient-advantage.ai/tag-anthropic.html)
+- [architecture](https://build.ambient-advantage.ai/tag-architecture.html)
+- [beehiiv](https://build.ambient-advantage.ai/tag-beehiiv.html)
+- [claude](https://build.ambient-advantage.ai/tag-claude.html)
+- [claude-cowork](https://build.ambient-advantage.ai/tag-claude-cowork.html)
+- [cloud-build](https://build.ambient-advantage.ai/tag-cloud-build.html)
+- [cloud-run](https://build.ambient-advantage.ai/tag-cloud-run.html)
+- [cloud-scheduler](https://build.ambient-advantage.ai/tag-cloud-scheduler.html)
+- [cloudflare-pages](https://build.ambient-advantage.ai/tag-cloudflare-pages.html)
+- [decisions](https://build.ambient-advantage.ai/tag-decisions.html)
+- [elevenlabs](https://build.ambient-advantage.ai/tag-elevenlabs.html)
+- [firestore](https://build.ambient-advantage.ai/tag-firestore.html)
+- [gcs](https://build.ambient-advantage.ai/tag-gcs.html)
+- [gemini](https://build.ambient-advantage.ai/tag-gemini.html)
+- [github](https://build.ambient-advantage.ai/tag-github.html)
+- [gmail-api](https://build.ambient-advantage.ai/tag-gmail-api.html)
+- [google-cloud](https://build.ambient-advantage.ai/tag-google-cloud.html)
+- [inaugural](https://build.ambient-advantage.ai/tag-inaugural.html)
+- [secret-manager](https://build.ambient-advantage.ai/tag-secret-manager.html)
+
+## Related sites
+- [Ambient Advantage home](https://ambient-advantage.ai)
+- [Chiel's Take](https://take.ambient-advantage.ai): Editorial counterpart — opinion column on AI strategy.
+- [The Daily Briefing](https://briefing.ambient-advantage.ai)
+- [The Podcast](https://podcast.ambient-advantage.ai)
+- [Chiel Hendriks on LinkedIn](https://www.linkedin.com/in/chielhendriks/)
