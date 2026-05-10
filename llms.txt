@@ -2,6 +2,9 @@
 
 > Behind-the-scenes catalogue of how the Ambient Advantage system itself is built. The engineering counterpart to Chiel's Take: where Take publishes opinion on AI strategy, the Build Log publishes architecture deep-dives, decisions, gotchas, and operational notes from running a production AI pipeline (Cloud Run, Claude, ElevenLabs, Cloudflare Pages, Firestore, GitHub). The homepage is a clickable component grid rather than a chronological feed — one card per system component. Authored by Chiel Hendriks (Managing Director, PwC Canada; ex-Google, 16 years), who built the system as a non-engineer using Claude Cowork as code assistant.
 
+## Data feeds
+- [posts.json](https://build.ambient-advantage.ai/posts.json): Machine-readable post catalogue — slug, title, tags, date, read time, excerpt. Sorted newest-first.
+
 ## Posts
 - [How I Built a Production AI System Without Writing the Code](https://build.ambient-advantage.ai/how-i-built-a-production-ai-system-without-writing-the-code.html) (May 1, 2026): Inaugural deep-dive on building a production AI pipeline as a non-engineer, with Claude Cowork as code assistant. Covers the architecture, the decisions, and why a sketch never came first.
 

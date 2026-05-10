@@ -1,0 +1,30 @@
+{
+  "name": "Build Log — Ambient Advantage",
+  "description": "Behind-the-scenes catalogue of how the Ambient Advantage system itself is built — architecture, components, decisions, gotchas, and operational notes from running a production AI pipeline. Authored by Chiel Hendriks (Managing Director, PwC Canada).",
+  "owner": {
+    "name": "Chiel Hendriks",
+    "url": "https://www.linkedin.com/in/chielhendriks/"
+  },
+  "llms_txt": "https://build.ambient-advantage.ai/llms.txt",
+  "endpoints": [
+    {
+      "name": "Posts catalogue (JSON)",
+      "url": "https://build.ambient-advantage.ai/posts.json",
+      "type": "application/json",
+      "description": "Build Log post catalogue — slug, title, tags, date, read time, excerpt. Sorted newest-first."
+    },
+    {
+      "name": "LLM/agent guide",
+      "url": "https://build.ambient-advantage.ai/llms.txt",
+      "type": "text/plain",
+      "description": "Site overview, posts, tag pages, and pointers."
+    }
+  ],
+  "related_sites": [
+    "https://ambient-advantage.ai",
+    "https://briefing.ambient-advantage.ai",
+    "https://take.ambient-advantage.ai",
+    "https://podcast.ambient-advantage.ai",
+    "https://build.ambient-advantage.ai"
+  ]
+}

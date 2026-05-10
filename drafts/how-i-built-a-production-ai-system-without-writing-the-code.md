@@ -5,6 +5,7 @@ date: 2026-05-01
 tag: Architecture
 tags: architecture, inaugural, decisions, claude, claude-cowork, gemini, agentic-ai, google-cloud, agents
 pinned: true
+read_time: 12
 excerpt: I'm not an engineer, but over the last several weeks I built a production AI system in my spare time, with Claude Cowork as my code assistant. This is the story of how it came to be, and why I didn't start by sketching an architecture diagram.
 ---
 
