@@ -358,6 +358,8 @@ def render_tag_chips(tags: list[str]) -> str:
 
 
 def render_article(meta: dict, body_html: str) -> str:
+    import _jsonld
+
     template = ARTICLE_TEMPLATE.read_text()
     chips_html = render_tag_chips(meta["tags"])
     replacements = {
@@ -369,6 +371,7 @@ def render_article(meta: dict, body_html: str) -> str:
         "{{DATE_DISPLAY}}": meta["date_display"],
         "{{ARTICLE_BODY}}": body_html,
         "{{TAG_CHIPS}}": chips_html,
+        "{{JSONLD}}": _jsonld.article(meta),
     }
     for k, v in replacements.items():
         template = template.replace(k, v)
@@ -445,7 +448,14 @@ def render_index(posts: list[dict]) -> str:
     else:
         recent_html = ""
 
-    return template.replace("{{HERO}}", hero_html).replace("{{RECENT}}", recent_html)
+    import _jsonld
+
+    return (
+        template
+        .replace("{{HERO}}", hero_html)
+        .replace("{{RECENT}}", recent_html)
+        .replace("{{JSONLD}}", _jsonld.index())
+    )
 
 
 def render_tag_page(tag: str, posts_for_tag: list[dict]) -> str:
