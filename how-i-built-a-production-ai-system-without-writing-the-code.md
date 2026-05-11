@@ -1,0 +1,400 @@
+# How I Built a Production AI System Without Writing the Code
+
+*By Chiel Hendriks · Published May 1, 2026 · 12 min read · Architecture*
+
+*Tags: architecture, inaugural, decisions, claude, claude-cowork, gemini, agentic-ai, google-cloud, agents*
+
+I'm not an engineer. I've never been one. I have always, however, had an affinity with technology, the kind of person who'll happily spend a Sunday afternoon figuring out why the home network is slow, or setting up smart lights that no one else in the house asked for (or ever uses).
+
+Over the last several weeks, in the little bits of spare time I have outside of work and family, I built a production AI system. Every weekday morning it researches the latest AI news, writes a newsletter, narrates a podcast with two hosts, and publishes both to this website before I've finished my morning tea.
+
+I didn't start out planning to run this entire setup. I actually started because I wanted to see how much I could do with the tooling we have available today. I wanted to tinker, learn and experiment. The system is the by-product of me trying and learning as I went. The experience I am picking up along the way is the actual asset, and it's allowing me to do things I could never have imagined a year ago.
+
+I didn't start by sketching an architecture diagram, as I did not know how to deliver against that. I didn't start on Google Cloud with a fully automated pipeline, as I didn't know how to build one. I started playing around with Claude Cowork, in a Q&A fashion just asking my way through from the start.
+
+## Where it started
+
+I was looking for a way to receive a daily newsletter with those stories that would help me stay on top of the latest AI news. Claude has a feature called "scheduled tasks". So I asked it to run a prompt on a schedule. I set one up: every weekday morning, research the latest AI news from a list of newsletters and websites I'd named, and write me a briefing. This sort of worked, but left a lot to be desired.
+
+The writing was decent. The schedule, less so. Some mornings the task fired and the output landed somewhere useful. Other mornings the schedule slipped. Sometimes the response was just a chat reply that lived in my Claude history and went nowhere: no email, no website, no podcast. It was a prompt with a timer. Not a system that I could rely on.
+
+As I got more into it, I wanted reliability and consistency. If I'm going to build a system, I want it to work 100% of the time, otherwise what's the point? No fails on those mornings where I'd want to listen to the podcast or read the newsletter during my commute. I wasn't trying to ship a product. I just wanted the thing to actually run, every weekday, consistently and fully automated, for me to enjoy it.
+
+## The pattern
+
+The pattern that would repeat for the next several weeks: quite often the system would throw an error, the task failed, timed out, etc, ask Claude how to get past it, try the smallest thing that might work. If it held, keep it. If it didn't, ask the next question.
+
+A lot of this happened in the terminal, and that itself is part of the journey. I used to log into GitHub through the website, upload a file, watch it overwrite the previous one, and assume there had to be a better way. There was. Claude Cowork (the desktop tool I use as my code assistant) walked me through git, the command line, package managers, the whole works. Installing things along the way. What I would have called plugins are, in this engineering world, usually called CLI tools or packages, installed through a package manager like Homebrew. Today, ninety-nine percent of my work on this system happens in two windows: a terminal, and Claude Cowork on the side, watching what I'm doing and answering my questions in real time.
+
+The terminal isn't where I expected to end up. It's also not where I'd recommend most people start. But the way I got there is the same way the rest of the system got built: one blocker, one question, a small iteration, an improvement, and on to the next experiment; one at a time.
+
+I never sat down and designed the architecture. The architecture slowly came together as my questions and answers led me there. The more accurate way to describe it is that I backed into an architecture, more so than writing out the architecture and then executing against it. I fully realize my current architecture may not be the 'best' for the system that I have built according to professional engineering standards; however it works and efficiently enough so that it costs me virtually nothing to run monthly from an infrastructure perspective.
+
+## The graduations
+
+Each piece of the system arrived as the answer to a problem. Six of them, in roughly the order they showed up:
+
+1. **"I need this to run reliably."** Claude scheduled tasks couldn't give me that. I asked what would. With Claude's help I landed on **Cloud Run** and **Cloud Scheduler**. Cloud Run is a Google service that runs a small piece of code (in my case, a Python web app) when something asks it to, and scales to zero when nothing is happening. Meaning I pay nothing when it's idle. Cloud Scheduler does what the name says: fire an HTTPS request at a specific time, hit my Cloud Run service, and the work happens. That gave me the reliable trigger Claude scheduled tasks couldn't.
+2. **"I need it to remember what it did yesterday."** When the pipeline retries, I don't want it to send the newsletter twice. I asked how to make the system idempotent (meaning it's safe to run multiple times without doing the same thing twice). I landed on **Firestore**, Google's serverless document database. Two collections, no migrations, no joins. One small document per day says "did I send today's newsletter yet?" If the answer is yes, the pipeline skips and exits. The whole state model is two documents wide.
+3. **"I need to actually call Claude from my code."** Worth its own section, see below. I had to move away from 'manual' Claude.
+4. **"I need to send the newsletter as a real email."** I didn't want to spin up an SMTP server. I asked for the simplest path. I landed on the **Gmail API** with OAuth. The pipeline drafts the newsletter inside my own Gmail account and then sends it from there. As a side effect, I had a place to review the draft before it went out. That review window became the human-in-the-loop gate, until I trained myself out of it.
+5. **"I want to turn the transcript into a podcast."** This one had a clear answer: **ElevenLabs**, a text-to-speech service that's good enough to be mistaken for a real podcast. The transcript gets parsed into speaker segments, each segment gets narrated in one of two voices, the chunks get stitched into a single MP3, and the MP3 lands in **Google Cloud Storage** with a public URL. I even created a jingle using [Suno](https://suno.com/) and added that to the podcast to make it sounds more 'real'. I think that part worked out pretty well, you can check it out by listening to the first seconds of any of the recent podcasts.
+6. **"I want a website for all of this."** I landed on **Cloudflare Pages**, a static site host, fed by **GitHub** repos. The pipeline writes new newsletter HTML and a new podcast feed straight into a GitHub repository through GitHub's Contents API. Cloudflare watches the repo and rebuilds the site within a minute. Three sister sites (briefing, podcast, take) all run this way. This site, the build log, makes four.
+
+For the visuals on those sites (diagrams, banner images, podcast thumbnails, that sort of thing) I lean on **Gemini**. Right now Gemini's multimodal generation is meaningfully better than Claude's for image work, but that gap is closing, but for now I use Claude Cowork for code and reasoning, Gemini for pixels.
+
+## The Claude component, up close
+
+A bit more context on the piece that does the actual work each morning.
+
+In this system, Claude shows up as a series of **API calls**: straight HTTPS requests from my Cloud Run service to the Anthropic API, authenticated with an API key that lives in Google's Secret Manager (not in the code, not in environment variables, not anywhere it could leak by accident). The pipeline makes four Claude calls back to back, each with a different job.
+
+1. **Research**, using **Claude Sonnet** with the `web_search` tool turned on. It gets a prompt that says: here are the angles I care about, here are the AI newsletters I subscribe to that you should pull from my Gmail for context, here are the named thought leaders I want to track, and here's the open web. Find me ten to fifteen stories worth covering.
+2. **Writing**, using **Claude Opus 4.6**. It takes the research brief, plus a "golden copy" example of a newsletter I think hits the mark, and writes the actual newsletter in markdown.
+3. **Self-review**, also **Claude Opus 4.6**. Same model is asked to grade its own output across hook, depth, thought leadership, and resources. If the score dips below a threshold, it rewrites with the specific feedback in mind.
+4. **Podcast transcript**, also **Claude Opus 4.6**. It's a full two-host conversation, around two thousand to twenty-five hundred words (usually translates to just under 10 minutes of audio).
+
+A note on the prompts themselves: I didn't write any of them in one sitting. They've evolved over weeks of "the output was off in this way, how do I fix it?" Claude helped me iterate on the prompts that drive Claude.
+
+One more thing I learned the hard way. Claude Cowork has a blind spot: it sometimes forgets how this particular system works and reverts to suggesting setups it's seen elsewhere. For a stretch I kept getting nudged toward Vercel for hosting, even though I'd already picked Cloudflare Pages and was happily working with it. I ended up writing a "skill" in Claude Cowork, which is essentially a piece of persistent memory that allows Claude to avoid forgetting things you have told it many times before (which was getting to be really annoying at times as Claude can be very forgetful). I built one called "ambient advantage architecture" and now I invoke it every time I ask Claude to provide me commands for a terminal session for this project. The drift went away. That moment, building a tool to keep my AI coworker focused and consistent, felt like a milestone of its own.
+
+## Where I ended up
+
+This is the picture I couldn't have drawn in week one. It's the end result of all the questions I asked.
+
+<div class="arch-embed">
+<style>
+.arch-embed * { margin: 0; padding: 0; box-sizing: border-box; }
+.arch-embed { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #ffffff; color: #1a1a2e; padding: 40px 20px; }
+.arch-embed .container { max-width: 1100px; margin: 0 auto; }
+.arch-embed h1 { text-align: center; font-size: 28px; font-weight: 600; color: #1a1a2e; margin-bottom: 6px; letter-spacing: -0.5px; }
+.arch-embed .subtitle { text-align: center; font-size: 14px; color: #666; margin-bottom: 48px; }
+.arch-embed .phase { margin-bottom: 40px; }
+.arch-embed .phase-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.arch-embed .phase-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; padding: 4px 12px; border-radius: 4px; white-space: nowrap; }
+.arch-embed .phase-1 .phase-label { background: #eff6ff; color: #2563eb; }
+.arch-embed .phase-2 .phase-label { background: #ecfdf5; color: #059669; }
+.arch-embed .phase-infra .phase-label { background: #f5f3ff; color: #7c3aed; }
+.arch-embed .phase-line { flex: 1; height: 1px; background: #e2e8f0; }
+.arch-embed .phase-time { font-size: 12px; color: #94a3b8; white-space: nowrap; }
+.arch-embed .flow-row { display: flex; align-items: stretch; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.arch-embed .flow-row.centered { justify-content: center; }
+.arch-embed .node { border-radius: 10px; padding: 16px 20px; position: relative; min-width: 140px; flex: 1; max-width: 260px; }
+.arch-embed .node-icon { font-size: 22px; margin-bottom: 8px; line-height: 1; }
+.arch-embed .node-icon img, .arch-embed .node-icon svg { width: 24px !important; height: 24px !important; vertical-align: middle; }
+.arch-embed .infra-item .node-title img, .arch-embed .infra-item .node-title svg { width: 16px !important; height: 16px !important; vertical-align: -2px; margin-right: 4px; }
+.arch-embed .node-title { font-size: 13px; font-weight: 600; color: #1a1a2e; margin-bottom: 4px; }
+.arch-embed .node-desc { font-size: 11px; line-height: 1.5; color: #64748b; }
+.arch-embed .node.trigger { background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.arch-embed .node.claude { background: #f0f4ff; border: 1px solid #dbeafe; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.arch-embed .node.gmail { background: #fef2f2; border: 1px solid #fecaca; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.arch-embed .node.beehiiv { background: #fdf4ff; border: 1px solid #f5d0fe; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.arch-embed .node.human { background: #fffbeb; border: 1px solid #fde68a; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.arch-embed .node.tts { background: #f0fdf4; border: 1px solid #bbf7d0; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.arch-embed .node.storage { background: #faf5ff; border: 1px solid #e9d5ff; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.arch-embed .node.publish { background: #f0fdf4; border: 1px solid #bbf7d0; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.arch-embed .node.infra { background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.arch-embed .auto-tag { display: inline-block; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 2px 7px; border-radius: 3px; margin-bottom: 8px; }
+.arch-embed .auto-tag.automated { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+.arch-embed .auto-tag.manual { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+.arch-embed .auto-tag.hybrid { background: linear-gradient(90deg, #ecfdf5, #fffbeb); color: #059669; border: 1px solid #a7f3d0; }
+.arch-embed .node.is-automated { box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.arch-embed .node.is-manual { border-style: dashed !important; border-color: #d97706 !important; }
+.arch-embed .human-callout.hybrid { border: 1px solid #a7f3d0; background: #f8fffe; }
+.arch-embed .arrow-row { display: flex; justify-content: center; margin: 4px 0 4px 0; }
+.arch-embed .arrow-row svg { opacity: 0.6; }
+.arch-embed .flow-arrow { display: flex; align-items: center; color: #94a3b8; font-size: 18px; flex-shrink: 0; padding: 0 2px; }
+.arch-embed .outputs { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.arch-embed .badge { font-size: 10px; padding: 2px 8px; border-radius: 3px; font-weight: 500; }
+.arch-embed .badge.newsletter { background: #eff6ff; color: #2563eb; }
+.arch-embed .badge.podcast { background: #ecfdf5; color: #059669; }
+.arch-embed .badge.email { background: #fef2f2; color: #dc2626; }
+.arch-embed .badge.mp3 { background: #ecfeff; color: #0891b2; }
+.arch-embed .badge.site { background: #f5f3ff; color: #7c3aed; }
+.arch-embed .badge.rss { background: #fffbeb; color: #d97706; }
+.arch-embed .infra-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.arch-embed .infra-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 18px; }
+.arch-embed .infra-item .node-title { font-size: 12px; }
+.arch-embed .infra-item .node-desc { font-size: 11px; }
+.arch-embed .human-callout { border: 1px dashed #fde68a; border-radius: 10px; padding: 14px 20px; margin: 0 auto 12px; max-width: 340px; text-align: center; }
+.arch-embed .human-callout .node-title { color: #d97706; }
+.arch-embed .legend { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; }
+.arch-embed .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #64748b; }
+.arch-embed .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+.arch-embed .legend-dot.blue { background: #2563eb; }
+.arch-embed .legend-dot.green { background: #059669; }
+.arch-embed .legend-dot.yellow { background: #d97706; }
+.arch-embed .legend-dot.purple { background: #7c3aed; }
+.arch-embed .section-note { text-align: center; font-size: 11px; color: #94a3b8; margin-top: 8px; margin-bottom: 20px; font-style: italic; }
+.arch-embed .phase-1 .node { background: #f0f4ff; border: 1px solid #dbeafe; }
+.arch-embed .phase-2 .node { background: #f0fdf4; border: 1px solid #bbf7d0; }
+.arch-embed .phase-infra .infra-item { background: #ffffff; }
+.arch-embed { background: #18181b; color: #e4e4e7; }
+.arch-embed h1 { color: #fafafa; }
+.arch-embed .subtitle { color: #a1a1aa; }
+.arch-embed .phase-line { background: #3f3f46; }
+.arch-embed .phase-time { color: #71717a; }
+.arch-embed .phase-1 .phase-label { background: #1e293b; color: #93c5fd; }
+.arch-embed .phase-2 .phase-label { background: #14532d; color: #86efac; }
+.arch-embed .phase-infra .phase-label { background: #3b1d57; color: #c4b5fd; }
+.arch-embed .node-title { color: #fafafa; }
+.arch-embed .node-desc { color: #d4d4d8; }
+.arch-embed .phase-1 .node { background: #27272a; border: 1px solid #3f3f46; border-left: 3px solid #3b82f6; padding-left: 18px; }
+.arch-embed .phase-2 .node { background: #27272a; border: 1px solid #3f3f46; border-left: 3px solid #10b981; padding-left: 18px; }
+.arch-embed .phase-infra .infra-item { background: #27272a; border-color: #3f3f46; }
+.arch-embed .section-note { color: #71717a; }
+.arch-embed .human-callout.hybrid { background: #1f2622; border-color: #2d4a3a; }
+.arch-embed .human-callout.hybrid div[style*="color:#059669"] { color: #34d399 !important; }
+.arch-embed .human-callout.hybrid div[style*="color:#d97706"] { color: #fbbf24 !important; }
+.arch-embed .human-callout.hybrid div[style*="color:#64748b"] { color: #d4d4d8 !important; }
+.arch-embed .auto-tag.automated { background: #1a3a2c; color: #6ee7b7; border-color: #2d4a3a; }
+.arch-embed .auto-tag.manual { background: #3a2a1a; color: #fbbf24; border-color: #5a3a1a; }
+.arch-embed .auto-tag.hybrid { background: linear-gradient(90deg,#1a3a2c,#3a2a1a); color: #6ee7b7; border-color: #2d4a3a; }
+.arch-embed .flow-arrow { color: #52525b; }
+.arch-embed .legend { border-top-color: #3f3f46; }
+.arch-embed .legend-item { color: #a1a1aa; }
+.arch-embed .outputs .badge.newsletter { background: #1e293b; color: #93c5fd; }
+.arch-embed .outputs .badge.podcast { background: #14532d; color: #86efac; }
+.arch-embed .outputs .badge.email { background: #3a1a1a; color: #fca5a5; }
+.arch-embed .outputs .badge.mp3 { background: #1a3a3f; color: #67e8f4; }
+.arch-embed .outputs .badge.rss { background: #3a2a1a; color: #fbbf24; }
+.arch-embed div[style*="background:#ecfdf5"] { background: #1f2622 !important; border-color: #2d4a3a !important; }
+.arch-embed div[style*="background:#ecfdf5"] div[style*="color:#059669"] { color: #6ee7b7 !important; }
+.arch-embed div[style*="background:#ecfdf5"] div[style*="color:#64748b"] { color: #d4d4d8 !important; }
+.arch-embed div[style*="background:#faf8ff"] { background: #2a2330 !important; border-color: #6d4ea8 !important; }
+.arch-embed div[style*="background:#faf8ff"] span[style*="color:#7c3aed"] { color: #c4b5fd !important; }
+.arch-embed div[style*="background:#faf8ff"] span[style*="color:#94a3b8"] { color: #a1a1aa !important; }
+.arch-embed div[style*="background:#faf8ff"] div[style*="color:#64748b"] { color: #d4d4d8 !important; }
+
+
+
+</style>
+<div class="container">
+
+  <h1>Ambient Advantage</h1>
+  <p class="subtitle">Automated Daily AI Briefing Pipeline — Architecture Overview</p>
+
+  <div class="phase phase-1">
+    <div class="phase-header">
+      <span class="phase-label">Phase 1 — Research &amp; Draft</span>
+      <div class="phase-line"></div>
+      <span class="phase-time">5:30 AM ET</span>
+    </div>
+    <div class="flow-row">
+      <div class="node trigger is-automated">
+        <span class="auto-tag automated">Automated</span>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"></div>
+        <div class="node-title">Cloud Scheduler</div>
+        <div class="node-desc">Cron trigger hits<br><code style="font-size:10px;color:#2563eb">/research-and-draft</code></div>
+      </div>
+      <div class="flow-arrow">&#8594;</div>
+      <div class="node claude is-automated">
+        <span class="auto-tag automated">Automated</span>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/anthropic/D4A27F" alt="Claude"></div>
+        <div class="node-title">Claude + Web Search</div>
+        <div class="node-desc">Pass 1: Researches 10–15 AI stories using web search + Gmail newsletters</div>
+      </div>
+      <div class="flow-arrow">&#8594;</div>
+      <div class="node claude is-automated">
+        <span class="auto-tag automated">Automated</span>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/anthropic/D4A27F" alt="Claude"></div>
+        <div class="node-title">Claude Writes</div>
+        <div class="node-desc">Pass 2: Newsletter, podcast transcript (JON/AVA), episode summary</div>
+        <div class="outputs">
+          <span class="badge newsletter">Newsletter</span>
+          <span class="badge podcast">Transcript</span>
+        </div>
+      </div>
+      <div class="flow-arrow">&#8594;</div>
+      <div class="node gmail is-automated">
+        <span class="auto-tag automated">Automated</span>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/gmail/EA4335" alt="Gmail"></div>
+        <div class="node-title">Gmail Drafts</div>
+        <div class="node-desc">Two drafts created for review + auto-approval quality checks</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-row">
+    <svg width="24" height="28"><path d="M12 0 L12 28" stroke="#059669" stroke-width="1.5" stroke-dasharray="4 3"/><path d="M7 22 L12 28 L17 22" fill="none" stroke="#059669" stroke-width="1.5"/></svg>
+  </div>
+  <div class="human-callout hybrid" style="max-width: 480px;">
+    <span class="auto-tag hybrid">Hybrid — Usually Automated</span>
+    <div style="display:flex; gap:18px; align-items:flex-start; text-align:left; margin-top:8px;">
+      <div style="flex:1;">
+        <div style="font-size:12px; font-weight:600; color:#059669; margin-bottom:4px;">&#9989; Default: Auto-Approved</div>
+        <div style="font-size:11px; color:#64748b; line-height:1.5;">Quality checks score the content automatically. If thresholds are met, drafts are approved and published with zero human touch.</div>
+      </div>
+      <div style="width:1px; background:#d1fae5; align-self:stretch;"></div>
+      <div style="flex:1;">
+        <div style="font-size:12px; font-weight:600; color:#d97706; margin-bottom:4px;">&#128100; Optional: Chiel Steps In</div>
+        <div style="font-size:11px; color:#64748b; line-height:1.5;">Chiel can review, edit, or add "Chiel's Take" before approving — shaping the editorial voice when he chooses to.</div>
+      </div>
+    </div>
+  </div>
+  <div class="arrow-row">
+    <svg width="24" height="28"><path d="M12 0 L12 28" stroke="#059669" stroke-width="1.5" stroke-dasharray="4 3"/><path d="M7 22 L12 28 L17 22" fill="none" stroke="#059669" stroke-width="1.5"/></svg>
+  </div>
+
+  <div class="phase phase-2">
+    <div class="phase-header">
+      <span class="phase-label">Phase 2 — Publish</span>
+      <div class="phase-line"></div>
+      <span class="phase-time">7:00 AM ET (retries every 15 min)</span>
+    </div>
+    <div class="flow-row">
+      <div class="node trigger is-automated">
+        <span class="auto-tag automated">Automated</span>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"></div>
+        <div class="node-title">Cloud Scheduler</div>
+        <div class="node-desc">Cron trigger hits<br><code style="font-size:10px;color:#059669">/run</code></div>
+      </div>
+      <div class="flow-arrow">&#8594;</div>
+      <div class="node beehiiv is-automated">
+        <span class="auto-tag automated">Automated</span>
+        <div class="node-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-label="Beehiiv"><defs><linearGradient id="bhgrad-canon" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#E94CB5"/><stop offset="100%" stop-color="#3F4FC4"/></linearGradient></defs><rect width="100" height="100" rx="22" fill="url(#bhgrad-canon)"/><g fill="#fff"><path d="M36 36 a14 10 0 0 1 28 0 v4 h-28 z"/><rect x="28" y="46" width="44" height="12" rx="6"/><rect x="20" y="62" width="60" height="12" rx="6"/><rect x="20" y="78" width="22" height="12" rx="6"/><rect x="58" y="78" width="22" height="12" rx="6"/><path d="M44 90 v-22 q0 -4 6 -4 q6 0 6 4 v22 z"/></g></svg></div>
+        <div class="node-title">Beehiiv — Send Newsletter</div>
+        <div class="node-desc">POST to Beehiiv API → branded email blast to subscriber list</div>
+        <div class="outputs"><span class="badge email">Email sent</span></div>
+      </div>
+      <div class="flow-arrow">&#8594;</div>
+      <div class="node tts is-automated">
+        <span class="auto-tag automated">Automated</span>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/elevenlabs/000000" alt="ElevenLabs"></div>
+        <div class="node-title">ElevenLabs TTS</div>
+        <div class="node-desc">Transcript → audio. Two voices (JON/AVA), chunked &amp; concatenated</div>
+        <div class="outputs"><span class="badge mp3">MP3</span></div>
+      </div>
+      <div class="flow-arrow">&#8594;</div>
+      <div class="node storage is-automated">
+        <span class="auto-tag automated">Automated</span>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/googlecloudstorage/AECBFA" alt="GCS"></div>
+        <div class="node-title">Cloud Storage</div>
+        <div class="node-desc">MP3 uploaded to GCS bucket (public URL)</div>
+      </div>
+    </div>
+    <div class="arrow-row">
+      <svg width="24" height="24"><path d="M12 0 L12 24" stroke="#059669" stroke-width="1.5" opacity="0.5"/><path d="M7 18 L12 24 L17 18" fill="none" stroke="#059669" stroke-width="1.5" opacity="0.5"/></svg>
+    </div>
+    <div class="flow-row centered">
+      <div class="node publish is-automated">
+        <span class="auto-tag automated">Automated</span>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/cloudflare/F38020" alt="Cloudflare"></div>
+        <div class="node-title">Cloudflare — Briefing Site</div>
+        <div class="node-desc">Newsletter → HTML article committed via GitHub API</div>
+      </div>
+      <div class="node publish is-automated">
+        <span class="auto-tag automated">Automated</span>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/cloudflare/F38020" alt="Cloudflare"></div>
+        <div class="node-title">Cloudflare — Podcast Site</div>
+        <div class="node-desc">Episode + RSS feed updated via GitHub API</div>
+        <div class="outputs">
+          <span class="badge rss">RSS / Apple / Spotify</span>
+        </div>
+      </div>
+      <div class="node storage is-automated">
+        <span class="auto-tag automated">Automated</span>
+        <div class="node-icon"><img width="24" height="24" src="https://cdn.simpleicons.org/firebase/FFCA28" alt="Firestore"></div>
+        <div class="node-title">Firestore</div>
+        <div class="node-desc">Episode metadata + pipeline state saved. Idempotency guaranteed.</div>
+      </div>
+    </div>
+    <p class="section-note">Sites auto-deploy on commit via Cloudflare Pages</p>
+  </div>
+
+  <div class="phase phase-infra">
+    <div class="phase-header">
+      <span class="phase-label">Infrastructure</span>
+      <div class="phase-line"></div>
+      <span class="phase-time">Toronto (northamerica-northeast2)</span>
+    </div>
+    <div class="infra-grid">
+      <div class="infra-item">
+        <span class="auto-tag automated" style="font-size:8px; padding:1px 6px;">Auto-scaling</span>
+        <div class="node-title"><img width="16" height="16" src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"> Cloud Run</div>
+        <div class="node-desc">Runs the pipeline service. Scales to zero — near-zero cost when idle.</div>
+      </div>
+      <div class="infra-item">
+        <span class="auto-tag automated" style="font-size:8px; padding:1px 6px;">Auto-deploy</span>
+        <div class="node-title"><img width="16" height="16" src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"> Cloud Build</div>
+        <div class="node-desc">CI/CD: push to main → Docker build → deploy. Zero manual steps.</div>
+      </div>
+      <div class="infra-item">
+        <span class="auto-tag automated" style="font-size:8px; padding:1px 6px;">Auto-deploy</span>
+        <div class="node-title"><img width="16" height="16" src="https://cdn.simpleicons.org/cloudflare/F38020" alt="Cloudflare"> Cloudflare Pages</div>
+        <div class="node-desc">Hosts both static sites. Auto-deploys on every GitHub commit.</div>
+      </div>
+      <div class="infra-item">
+        <span class="auto-tag automated" style="font-size:8px; padding:1px 6px;">Auto-refresh</span>
+        <div class="node-title"><img width="16" height="16" src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"> Secret Manager</div>
+        <div class="node-desc">API keys, OAuth tokens. Auto-refreshing Gmail credentials.</div>
+      </div>
+      <div class="infra-item">
+        <span class="auto-tag automated" style="font-size:8px; padding:1px 6px;">Auto-commit</span>
+        <div class="node-title"><img width="16" height="16" src="https://cdn.simpleicons.org/github/181717" alt="GitHub"> GitHub (6 repos)</div>
+        <div class="node-desc">cloud-run-podcast, briefing site, podcast site, chiels-take-site, landing site, build log site. Push triggers Cloud Build + Cloudflare deploys.</div>
+      </div>
+      <div class="infra-item">
+        <span class="auto-tag automated" style="font-size:8px; padding:1px 6px;">Auto-alert</span>
+        <div class="node-title"><img width="16" height="16" src="https://cdn.simpleicons.org/googlecloud/4285F4" alt="GCP"> Cloud Logging</div>
+        <div class="node-desc">Monitoring + alert policy on ERROR severity.</div>
+      </div>
+    </div>
+    <div style="margin-top: 16px; padding: 18px 22px; background: #faf8ff; border: 1px dashed #8b5cf6; border-radius: 10px; display: flex; align-items: flex-start; gap: 16px;">
+      <div style="flex-shrink:0; padding-top: 2px;"><img src="https://cdn.simpleicons.org/anthropic/D4A27F" alt="Claude" style="width:28px; height:28px;"></div>
+      <div style="flex:1;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+          <span class="auto-tag hybrid" style="font-size:8px; padding:1px 6px;">Human + AI</span>
+          <span style="font-size:14px; font-weight:600; color:#7c3aed;">Claude Cowork</span>
+          <span style="font-size:11px; color:#94a3b8; font-style:italic;">— the builder behind the builder</span>
+        </div>
+        <div style="font-size:11px; color:#64748b; line-height:1.6;">The entire pipeline was designed, coded, and iterated through Claude Cowork sessions — architecture decisions, Python code, deployment configs, prompt engineering, and custom skills. A dedicated Cowork project holds the full context: an architecture skill teaches Claude how the system fits together, so every conversation picks up where the last one left off.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center; margin-top:32px; padding:16px 24px; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; max-width:560px; margin-left:auto; margin-right:auto;">
+    <div style="font-size:13px; font-weight:600; color:#059669; margin-bottom:6px;">Fully autonomous end-to-end — with an optional human touch</div>
+    <div style="font-size:11px; color:#64748b; line-height:1.6;">Every step from research to publishing runs automatically. Quality checks gate approval — most days the pipeline runs completely hands-free. Chiel can step in to shape content when he wants to, not because he has to.</div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="auto-tag automated" style="margin:0;">Automated</span>No human action required</div>
+    <div class="legend-item"><span class="auto-tag hybrid" style="margin:0;">Hybrid</span>Auto-approved unless human opts in</div>
+    <div class="legend-item"><div class="legend-dot blue"></div>Phase 1: Research &amp; Draft</div>
+    <div class="legend-item"><div class="legend-dot green"></div>Phase 2: Publish</div>
+    <div class="legend-item"><div class="legend-dot purple"></div>Infrastructure</div>
+  </div>
+
+</div>
+</div>
+
+Cloud Scheduler fires a request at my Cloud Run service every weekday morning. Cloud Run talks to Anthropic for the writing, Gmail for the email, ElevenLabs for the audio. State lives in Firestore. The MP3 lands in Cloud Storage. The newsletter and the podcast feed are written to GitHub, and Cloudflare Pages rebuilds the public sites within a minute. Each box on that diagram is its own little story, and the rest of this build log will fill in the boxes one by one.
+
+## How I trained myself out of the loop
+
+In the early versions I put myself in the loop. The pipeline would draft the newsletter, draft the transcript, drop them in my Gmail, and wait for me to apply an "approved" label. I'd read, sometimes edit, then click. That was fine for a few weeks. But it meant that I had to do this review in the morning every day, or no content gets created. I also realized that the quality of the content generation is such that I did not need to be in the loop for this system to run.
+
+So I built an improved flow with better AI. The self-review pass came in. A quality-check module came in. It grades each draft on structure, depth, and a few other dimensions. If everything scores above the threshold, the approval label gets applied automatically, and the pipeline keeps moving. If anything fails, I get an email and I'm back in the loop for that one morning only. I got there by asking Claude (using Cowork) all the time how to make these changes, what it requires, how to do it. If the instructions weren't clear, I'd ask Claude to explain again in plain English, break it down in steps, etc.
+
+Today I don't manually label anything. The system runs from end to end on its own, every weekday morning, and running fully automated 100% of the time. When it isn't, I hear about it before subscribers do. That's exactly the relationship I want with it.
+
+The takeaway I'd offer: the question isn't whether AI is good enough to run unsupervised. It's whether you've built the workflow that lets it run unsupervised consistently. Many workflows that leverage AI will need humans in the loop with defined approval gates, in my case here I found the AI system good enough to remove the manual check from the daily pipeline.
+
+## What this is teaching me
+
+Here's the 3 takeaways that this experience leaves me with:
+
+1. **You can go very far, very fast, by tinkering.** Most of what's in this system came from an evening here, a Saturday morning there. Pick something small that doesn't work, ask the next question, try the smallest possible answer. Repeat. The system you end up with is rarely the one you'd have planned, and that's usually a good thing.
+2. **Launch, then iterate.** Every component went live before it was ready. The first newsletter was rough. The first podcast had pacing issues. The first website was ugly. None of it would be where it is now if I'd waited until any of those felt finished. Actually launching the pieces into production and seeing how it performs provides real feedback (even just my own daily reading habit) which surfaces issues that no design session ever will.
+3. **Treat Claude Cowork as a real coworker.** Not a search engine, not a code generator. A coworker. Tell it what you're trying to do and why. Show it your terminal output (I did a lot of copy-pasting from terminal to Claude Cowork, and vice versa). Disagree when its suggestion doesn't sit right. Build it the context it needs to be useful. The skill I mentioned earlier is a small example. The relationship with AI (in my case Claude Cowork) gets better the more you invest in it, the same way it does with any human teammate.
+
+## What's next
+
+I'm still tinkering with this. The system isn't finished; none of it is. There's a backlog of things I want to improve, larger things I want to add, and the kind of unexpected questions that only show up once you actually run something every day.
+
+When I learn something worth sharing, I'll post about it here.
+
+If that sounds useful, follow along. If you're somewhere in the middle of your own version of this, I'd love to hear how it's going. Find me on LinkedIn.
+
+I hope my experience will encourage you to become a tinkerer too. It's never been easier to bring your ideas to life.

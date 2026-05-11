@@ -3,9 +3,10 @@
 publish.py, publish a new Build Log post on build.ambient-advantage.ai.
 
 Usage:
-  python3 publish.py drafts/my-new-post.md
+  python3 publish.py drafts/my-new-post.md            # full publish
+  python3 publish.py --md-only drafts/my-new-post.md  # only emit .md twin + index.md
 
-What it does:
+What it does (full publish):
   1. Parses the markdown draft (YAML-ish frontmatter + body).
   2. Converts the body to HTML (paragraphs, H2/H3, lists, code blocks,
      blockquotes, inline code, **bold**, *italic*, [links](url)).
@@ -14,6 +15,13 @@ What it does:
   5. Regenerates index.html with the catalogue layout (pinned hero,
      component grid, recent posts).
   6. Regenerates per-tag listing pages (tag-<slug>.html).
+  7. Writes the markdown twin <slug>.md for LLM/agent consumption.
+  8. Regenerates index.md, the markdown twin of the homepage.
+
+--md-only mode rebuilds only steps 7 and 8 and reads posts.json without
+modifying it. Used for backfilling .md twins on posts whose rendered HTML
+contains hand-edited content (inline diagrams etc.) that the minimal markdown
+converter would wipe on a full re-publish.
 
 What it does NOT do:
   - Touch git. Review with `git diff`, then commit and push yourself.
@@ -48,6 +56,9 @@ INDEX_TEMPLATE = REPO_ROOT / "_index_template.html"
 TAG_TEMPLATE = REPO_ROOT / "_tag_template.html"
 POSTS_JSON = REPO_ROOT / "posts.json"
 INDEX_PATH = REPO_ROOT / "index.html"
+INDEX_MD_PATH = REPO_ROOT / "index.md"
+
+SITE_BASE_URL = "https://build.ambient-advantage.ai"
 
 
 # =====================================================================
@@ -378,6 +389,50 @@ def render_article(meta: dict, body_html: str) -> str:
     return template
 
 
+def render_post_md(meta: dict, body_md: str) -> str:
+    """Markdown twin of a post, served at /<slug>.md.
+
+    Mirrors chiels-take-site's pattern, body verbatim under a small header so
+    LLMs and agents can fetch clean markdown without parsing HTML. The body is
+    the unmodified draft markdown, so any raw HTML embedded in the .html page
+    (e.g. inline diagrams) is intentionally absent here.
+    """
+    tags = ", ".join(meta.get("tags", []))
+    tag_line = f"\n*Tags: {tags}*\n" if tags else ""
+    return (
+        f"# {meta['title']}\n"
+        f"\n"
+        f"*By Chiel Hendriks · Published {meta['date_display']} · "
+        f"{meta['read_time_display']} · {meta['tag']}*\n"
+        f"{tag_line}"
+        f"\n"
+        f"{body_md.rstrip()}\n"
+    )
+
+
+def render_index_md(posts: list[dict]) -> str:
+    """Markdown index, short header + bulleted list of every published post."""
+    lines = [
+        "# Build Log — Ambient Advantage",
+        "",
+        "> Behind-the-scenes catalogue of how Ambient Advantage is built — "
+        "architecture deep-dives, component notes, and operational gotchas. "
+        "All published posts, newest-first.",
+        "",
+        "## Posts",
+        "",
+    ]
+    for p in posts:
+        url = f"{SITE_BASE_URL}/{p['slug']}.html"
+        tags = " · ".join(f"#{t}" for t in p.get("tags", []))
+        suffix = f" · {tags}" if tags else ""
+        lines.append(
+            f"- [{p['title']}]({url}) — {p['date_display']} · "
+            f"{p['read_time_display']} · {p['excerpt']}{suffix}"
+        )
+    return "\n".join(lines) + "\n"
+
+
 def _post_card(p: dict) -> str:
     chips = " ".join(f'<a class="post-chip" href="tag-{t}.html">#{t}</a>' for t in p.get("tags", []))
     return f'''    <article class="post-card">
@@ -510,7 +565,17 @@ def update_posts_json(meta: dict) -> list[dict]:
 
 # ---------- main ----------
 
-def publish(draft_path: Path) -> None:
+def publish(draft_path: Path, md_only: bool = False) -> None:
+    """Render a draft.
+
+    Default mode rebuilds every artefact (.html page, posts.json, index.html,
+    per-tag pages, plus the .md twins). --md-only mode rebuilds *only* the
+    markdown surfaces (<slug>.md, index.md) and leaves the HTML files and
+    posts.json untouched. The md-only path exists so that past posts whose
+    rendered HTML carries hand-edited inline diagrams (raw HTML the minimal
+    markdown converter would wipe) can have their markdown twin emitted
+    without losing the diagram.
+    """
     if not draft_path.exists():
         raise SystemExit(f"Draft not found: {draft_path}")
 
@@ -518,43 +583,64 @@ def publish(draft_path: Path) -> None:
     meta, body_md = parse_draft(raw)
     meta = enrich_meta(meta, body_md)
 
-    print(f"Publishing: {meta['title']}")
+    print(f"Publishing{' (md-only)' if md_only else ''}: {meta['title']}")
     print(f"  slug:      {meta['slug']}")
     print(f"  date:      {meta['date_display']}")
     print(f"  tags:      {', '.join(meta['tags']) or '(none)'}")
     print(f"  pinned:    {meta['pinned']}")
     print(f"  read time: {meta['read_time']} min")
 
-    # 1. Render the post page
-    body_html = markdown_to_html(body_md)
-    article_html = render_article(meta, body_html)
-    article_out = REPO_ROOT / f"{meta['slug']}.html"
-    article_out.write_text(article_html)
-    print(f"  wrote:     {article_out.relative_to(REPO_ROOT)}")
+    if md_only:
+        # Read existing posts.json without modifying it; we need its sorted
+        # listing to render index.md correctly. If it's missing, bail — md-only
+        # is a backfill mode that assumes a published catalogue already exists.
+        if not POSTS_JSON.exists():
+            raise SystemExit("posts.json not found; --md-only requires a published catalogue.")
+        posts = json.loads(POSTS_JSON.read_text())
+        print(f"  reading:   posts.json ({len(posts)} total, unchanged)")
+    else:
+        # 1. Render the post page
+        body_html = markdown_to_html(body_md)
+        article_html = render_article(meta, body_html)
+        article_out = REPO_ROOT / f"{meta['slug']}.html"
+        article_out.write_text(article_html)
+        print(f"  wrote:     {article_out.relative_to(REPO_ROOT)}")
 
-    # 2. Update posts.json
-    posts = update_posts_json(meta)
-    print(f"  updated:   posts.json ({len(posts)} total)")
+        # 2. Update posts.json
+        posts = update_posts_json(meta)
+        print(f"  updated:   posts.json ({len(posts)} total)")
 
-    # 3. Regenerate index.html
-    index_html = render_index(posts)
-    INDEX_PATH.write_text(index_html)
-    print(f"  rebuilt:   index.html")
+    # 3. Write the post markdown twin
+    article_md = render_post_md(meta, body_md)
+    article_md_out = REPO_ROOT / f"{meta['slug']}.md"
+    article_md_out.write_text(article_md)
+    print(f"  wrote:     {article_md_out.relative_to(REPO_ROOT)}")
 
-    # 4. Regenerate per-tag pages
-    all_tags: set[str] = set()
-    for p in posts:
-        for t in p.get("tags", []):
-            all_tags.add(t)
-    # Always render tag pages for known components, even if empty
-    for c in COMPONENTS:
-        all_tags.add(c["slug"])
+    if not md_only:
+        # 4. Regenerate index.html
+        index_html = render_index(posts)
+        INDEX_PATH.write_text(index_html)
+        print(f"  rebuilt:   index.html")
 
-    for tag in sorted(all_tags):
-        posts_for_tag = [p for p in posts if tag in p.get("tags", [])]
-        tag_html = render_tag_page(tag, posts_for_tag)
-        (REPO_ROOT / f"tag-{tag}.html").write_text(tag_html)
-    print(f"  rebuilt:   {len(all_tags)} tag pages")
+    # 5. Regenerate index.md (markdown twin of homepage)
+    INDEX_MD_PATH.write_text(render_index_md(posts))
+    print(f"  rebuilt:   index.md")
+
+    if not md_only:
+        # 6. Regenerate per-tag pages
+        all_tags: set[str] = set()
+        for p in posts:
+            for t in p.get("tags", []):
+                all_tags.add(t)
+        # Always render tag pages for known components, even if empty
+        for c in COMPONENTS:
+            all_tags.add(c["slug"])
+
+        for tag in sorted(all_tags):
+            posts_for_tag = [p for p in posts if tag in p.get("tags", [])]
+            tag_html = render_tag_page(tag, posts_for_tag)
+            (REPO_ROOT / f"tag-{tag}.html").write_text(tag_html)
+        print(f"  rebuilt:   {len(all_tags)} tag pages")
 
     print()
     print("Done. Next steps:")
@@ -565,10 +651,15 @@ def publish(draft_path: Path) -> None:
 
 
 def main() -> None:
-    if len(sys.argv) != 2:
+    args = sys.argv[1:]
+    md_only = False
+    if "--md-only" in args:
+        md_only = True
+        args.remove("--md-only")
+    if len(args) != 1:
         print(__doc__)
         sys.exit(1)
-    publish(Path(sys.argv[1]).expanduser().resolve())
+    publish(Path(args[0]).expanduser().resolve(), md_only=md_only)
 
 
 if __name__ == "__main__":

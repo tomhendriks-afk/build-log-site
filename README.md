@@ -19,7 +19,9 @@ build-site/
   _tag_template.html            Per-tag listing template
   posts.json                    Generated post catalog, DO NOT hand-edit
   index.html                    Generated catalogue homepage, DO NOT hand-edit
+  index.md                      Generated markdown twin of homepage, DO NOT hand-edit
   <slug>.html                   Generated post pages
+  <slug>.md                     Generated markdown twins of posts, DO NOT hand-edit
   tag-<slug>.html               Generated per-tag pages
   drafts/
     EXAMPLE.md                  Frontmatter + markdown reference
@@ -61,10 +63,26 @@ For each draft you publish, the script:
 5. Regenerates a `tag-<slug>.html` page for every unique tag and for every
    known component (including empty pages, handy for upcoming-component
    placeholders).
+6. Writes a `<slug>.md` markdown twin sibling for LLM/agent consumption (clean
+   markdown, no site chrome).
+7. Regenerates `index.md`, the markdown twin of the homepage.
 
 The script is **idempotent**, running it twice on the same draft updates
 rather than duplicates. It does not touch git; review the diff and commit
 yourself.
+
+### Backfilling `.md` twins on existing posts
+
+Pass `--md-only` to skip the HTML rewrites and emit only the markdown twin
+plus `index.md`:
+
+```
+python3 publish.py --md-only drafts/<slug>.md
+```
+
+This is the safe path when an existing post's rendered `.html` page carries
+hand-edited content (e.g. an inline architecture diagram) that the minimal
+markdown converter would silently wipe on a full re-publish.
 
 ## Tag taxonomy
 
